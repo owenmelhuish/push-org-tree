@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUSH | Interactive Org Tree</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary: #000000; 
+            --accent: #ff3e00; 
+            --bg: #ffffff; 
+            --text: #1a1a1a; 
+            --line: #e0e0e0;
+        }
+        
+        body { 
+            margin: 0; 
+            background: var(--bg); 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden; 
+            color: var(--text);
+        }
+
+        #header { 
+            position: absolute; 
+            top: 40px; 
+            left: 40px; 
+            border-left: 5px solid var(--accent); 
+            padding-left: 20px; 
+            pointer-events: none; 
+            z-index: 10;
+        }
+
+        h1 { 
+            margin: 0; 
+            font-size: 32px; 
+            font-weight: 900;
+            letter-spacing: -1.5px; 
+            line-height: 1;
+        }
+
+        p { 
+            margin: 8px 0 0; 
+            font-size: 12px; 
+            font-weight: 700;
+            color: #888; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+        }
+
+        .node circle { 
+            fill: #fff; 
+            stroke: var(--primary); 
+            stroke-width: 2.5px; 
+            cursor: pointer; 
+        }
+
+        .node--collapsed circle { 
+            fill: var(--primary) !important; 
+        }
+
+        .node text { 
+            font-size: 11px; 
+            font-weight: 700; 
+            fill: var(--text); 
+            text-transform: uppercase; 
+            letter-spacing: 0.8px;
+            pointer-events: none;
+            paint-order: stroke;
+            stroke: #fff;
+            stroke-width: 4px;
+        }
+
+        .link { 
+            fill: none; 
+            stroke: var(--line); 
+            stroke-width: 1.5px; 
+        }
+
+        #canvas {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        #canvas:active { cursor: grabbing; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h1>PUSH</h1>
+    <p>Thinking Tree: Organizational Structure</p>
+</div>
+
+<div id="canvas"></div>
+
+<script>
+    const data = {
+        name: "PUSH",
+        children: [
+            {
+                name: "STRATEGY & INSIGHTS",
+                children: [
+                    { name: "Brand Intelligence", children: [{ name: "STRATIS Platform Lead" }, { name: "Data Analyst" }] },
+                    { name: "Market Research", children: [{ name: "Consumer Insights" }, { name: "Competitive Analysis" }] }
+                ]
+            },
+            {
+                name: "STUDIO P (CREATIVE)",
+                children: [
+                    { 
+                        name: "Visual Identity", 
+                        children: [
+                            { name: "Rubber Hose Specialist" }, 
+                            { name: "Ignorant Flash Artist" },
+                            { name: "F1 Livery Designer" }
+                        ] 
+                    },
+                    { name: "Production", children: [{ name: "Video Production" }, { name: "Photography" }, { name: "AI Asset Gen" }] }
+                ]
+            },
+            {
+                name: "OPERATIONS & GROWTH",
+                children: [
+                    { name: "Account Management", children: [{ name: "Client Success" }, { name: "Project Lead" }] },
+                    { name: "Talent & Staffing", children: [{ name: "Booking Agents" }, { name: "Field Managers" }] }
+                ]
+            }
+        ]
+    };
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    const svg = d3.select("#canvas").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .call(d3.zoom().scaleExtent([0.3, 3]).on("zoom", (e) => g.attr("transform", e.transform)));
+
+    const g = svg.append("g");
+
+    const tree = d3.tree().nodeSize([60, 280]);
+    let root = d3.hierarchy(data);
+
+    root.x0 = 0;
+    root.y0 = 0;
+
+    // Start with main categories expanded, but sub-categories collapsed
+    root.children.forEach(collapse);
+
+    update(root);
+
+    // Zoom to fit initial view
+    const initialTransform = d3.zoomIdentity.translate(width / 5, height / 2).scale(0.8);
+    svg.call(d3.zoom().transform, initialTransform);
+
+    function collapse(d) {
+        if (d.children) {
+            d._children = d.children;
+            d._children.forEach(collapse);
+            d.children = null;
+        }
+    }
+
+    function update(source) {
+        const nodes = tree(root).descendants();
+        const links = tree(root).links();
+
+        nodes.forEach(d => d.y = d.depth * 280);
+
+        const node = g.selectAll('g.node')
+            .data(nodes, d => d.id || (d.id = Math.random()));
+
+        const nodeEnter = node.enter().append('g')
+            .attr('class', 'node')
+            .attr('transform', d => `translate(${source.y0},${source.x0})`)
+            .on('click', (event, d) => {
+                if (d.children) {
+                    d._children = d.children;
+                    d.children = null;
+                } else {
+                    d.children = d._children;
+                    d._children = null;
+                }
+                update(d);
+            });
+
+        nodeEnter.append('circle').attr('r', 1e-6);
+
+        nodeEnter.append('text')
+            .attr("dy", ".35em")
+            .attr("x", d => d.children || d._children ? -18 : 18)
+            .attr("text-anchor", d => d.children || d._children ? "end" : "start")
+            .text(d => d.data.name)
+            .style("fill-opacity", 1e-6);
+
+        const nodeUpdate = nodeEnter.merge(node);
+
+        nodeUpdate.transition().duration(600)
+            .attr("transform", d => `translate(${d.y},${d.x})`);
+
+        nodeUpdate.select('circle')
+            .attr('r', 7)
+            .attr('class', d => d._children ? "node--collapsed" : "")
+            .style("fill", d => d._children ? "var(--primary)" : "#fff");
+
+        nodeUpdate.select('text')
+            .style("fill-opacity", 1);
+
+        const nodeExit = node.exit().transition().duration(600)
+            .attr("transform", d => `translate(${source.y},${source.x})`)
+            .remove();
+
+        const link = g.selectAll('path.link')
+            .data(links, d => d.target.id);
+
+        const linkEnter = link.enter().insert('path', "g")
+            .attr("class", "link")
+            .attr('d', d => {
+                const o = {x: source.x0, y: source.y0};
+                return diagonal(o, o);
+            });
+
+        linkEnter.merge(link).transition().duration(600)
+            .attr('d', d => diagonal(d.source, d.target));
+
+        link.exit().transition().duration(600)
+            .attr('d', d => {
+                const o = {x: source.y, y: source.x};
+                return diagonal(o, o);
+            }).remove();
+
+        nodes.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
+    }
+
+    function diagonal(s, t) {
+        return `M ${s.y} ${s.x} C ${(s.y + t.y) / 2} ${s.x}, ${(s.y + t.y) / 2} ${t.x}, ${t.y} ${t.x}`;
+    }
+
+    window.addEventListener('resize', () => {
+        svg.attr("width", window.innerWidth).attr("height", window.innerHeight);
+    });
+</script>
+</body>
+</html>
