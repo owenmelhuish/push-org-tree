@@ -3,246 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSH | Interactive Org Tree</title>
+    <title>PUSH | Thinking Tree</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --primary: #000000; 
+            --primary: #ffffff; 
             --accent: #ff3e00; 
-            --bg: #ffffff; 
-            --text: #1a1a1a; 
-            --line: #e0e0e0;
+            --bg: #0a0a0a; 
+            --line: #2a2a2a; 
+            --text-dim: rgba(255,255,255,0.6);
         }
         
-        body { 
-            margin: 0; 
-            background: var(--bg); 
-            font-family: 'Inter', sans-serif; 
-            overflow: hidden; 
-            color: var(--text);
-        }
+        body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; overflow: hidden; color: var(--primary); }
+        
+        #header { position: absolute; top: 40px; left: 40px; border-left: 5px solid var(--accent); padding-left: 20px; pointer-events: none; z-index: 10; }
+        h1 { margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -1.5px; line-height: 1; }
+        p { margin: 8px 0 0; font-size: 11px; font-weight: 600; color: #777; text-transform: uppercase; letter-spacing: 2px; }
 
-        #header { 
-            position: absolute; 
-            top: 40px; 
-            left: 40px; 
-            border-left: 5px solid var(--accent); 
-            padding-left: 20px; 
-            pointer-events: none; 
-            z-index: 10;
-        }
+        #top-controls { position: absolute; top: 40px; right: 40px; z-index: 20; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+        #search-container { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+        
+        /* Error Message Styling */
+        #search-error { color: var(--accent); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .search-row { display: flex; gap: 10px; align-items: center; }
 
-        h1 { 
-            margin: 0; 
-            font-size: 32px; 
-            font-weight: 900;
-            letter-spacing: -1.5px; 
-            line-height: 1;
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50px;
+            padding: 12px 25px; color: white; font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+            transition: all 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            width: 140px; text-align: center;
         }
+        .glass-btn:hover { background: var(--accent); border-color: var(--accent); }
 
-        p { 
-            margin: 8px 0 0; 
-            font-size: 12px; 
-            font-weight: 700;
-            color: #888; 
-            text-transform: uppercase; 
-            letter-spacing: 2px;
+        #search-input {
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50px;
+            padding: 12px 25px; width: 300px; color: white; font-size: 14px; outline: none;
+            transition: all 0.3s ease;
         }
+        #search-input:focus { width: 400px; border-color: var(--accent); }
 
-        .node circle { 
-            fill: #fff; 
-            stroke: var(--primary); 
-            stroke-width: 2.5px; 
-            cursor: pointer; 
-        }
+        .node-rect { stroke: rgba(255,255,255,0.1); stroke-width: 1px; rx: 12; ry: 12; cursor: grab; }
+        .node-dept { font-size: 9px; font-weight: 800; fill: rgba(255,255,255,0.9); pointer-events: none; }
+        .node-name { font-size: 11px; font-weight: 800; text-transform: uppercase; fill: #fff; pointer-events: none; }
+        .node-title { font-size: 9px; font-weight: 400; fill: var(--text-dim); pointer-events: none; }
+        .plus-icon { pointer-events: none; }
+        .plus-bg { fill: rgba(255,255,255,0.2); }
+        .plus-text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; }
 
-        .node--collapsed circle { 
-            fill: var(--primary) !important; 
-        }
-
-        .node text { 
-            font-size: 11px; 
-            font-weight: 700; 
-            fill: var(--text); 
-            text-transform: uppercase; 
-            letter-spacing: 0.8px;
-            pointer-events: none;
-            paint-order: stroke;
-            stroke: #fff;
-            stroke-width: 4px;
-        }
-
-        .link { 
-            fill: none; 
-            stroke: var(--line); 
-            stroke-width: 1.5px; 
-        }
-
-        #canvas {
-            width: 100vw;
-            height: 100vh;
-            cursor: grab;
-        }
-
-        #canvas:active { cursor: grabbing; }
+        .link { stroke: var(--line); stroke-width: 2px; fill: none; }
+        svg { cursor: move; }
     </style>
 </head>
 <body>
 
 <div id="header">
     <h1>PUSH</h1>
-    <p>Thinking Tree: Organizational Structure</p>
+    <p>Organizational Thinking Tree</p>
 </div>
 
-<div id="canvas"></div>
+<div id="top-controls">
+    <button id="toggle-all" class="glass-btn">Expand All</button>
+    <button id="organize-btn" class="glass-btn">Organize</button>
+</div>
+
+<div id="search-container">
+    <div id="search-error">Please expand all before searching</div>
+    <div class="search-row">
+        <input type="text" id="search-input" placeholder="Search talent..." autocomplete="off">
+        <button id="search-button" class="glass-btn" style="width: auto;">Search</button>
+    </div>
+</div>
 
 <script>
-    const data = {
-        name: "PUSH",
+    const width = window.innerWidth, height = window.innerHeight;
+
+    const verticalThemes = {
+        "PUSH": { color: "#4a148c", dept: "HQ", angle: 0 },
+        "Gino Cantalini": { color: "#d32f2f", dept: "BRAND", angle: 0 },
+        "Julie Allen": { color: "#ef6c00", dept: "FINANCE", angle: 45 },
+        "Braden Bailey": { color: "#00695c", dept: "OPERATIONS", angle: 90 },
+        "Chelsea Soochit": { color: "#4527a0", dept: "PEOPLE & CULTURE", angle: 135 },
+        "Jason Prance": { color: "#283593", dept: "STRATEGY", angle: 180 },
+        "Kirsten Moore": { color: "#c2185b", dept: "CLIENT SERVICES", angle: 225 },
+        "Darren Hardeman": { color: "#1565c0", dept: "MEDIA CA", angle: 270 },
+        "Andres Torrente": { color: "#2e7d32", dept: "MEDIA U.S.", angle: 315 }
+    };
+
+    const fullData = {
+        name: "PUSH", title: "HQ",
         children: [
-            {
-                name: "STRATEGY & INSIGHTS",
+            { name: "Julie Berger", title: "President, NA" },
+            { name: "Kyle Verge", title: "CEO" },
+            { name: "Gino Cantalini", title: "Chief Brand Officer" },
+            { 
+                name: "Julie Allen", title: "Chief Financial Officer, NA", 
                 children: [
-                    { name: "Brand Intelligence", children: [{ name: "STRATIS Platform Lead" }, { name: "Data Analyst" }] },
-                    { name: "Market Research", children: [{ name: "Consumer Insights" }, { name: "Competitive Analysis" }] }
+                    { name: "Jack Vukanovich", title: "Controller" },
+                    { name: "Mabel Thompson", title: "Accounting Manager" },
+                    { name: "Serena Martini", title: "Staff Accountant" }
+                ] 
+            },
+            { 
+                name: "Braden Bailey", title: "Chief Operating Officer", 
+                children: [
+                    { name: "Lauren Harvey", title: "Head of Operations & Resourcing" },
+                    { name: "Stephan Guenette", title: "Lead, Creative Production & Resourcing" },
+                    { name: "Emma Bakos", title: "Sr. Specalist, Project Operations" },
+                    { name: "Ashley Walton", title: "Lead, Creative Technologist" },
+                    { name: "Nataliya Polyakova", title: "Creative Technologist" },
+                    { name: "Evgeniy Polyakova", title: "Creative Technologist" }
+                ] 
+            },
+            { name: "Chelsea Soochit", title: "People & Culture" },
+            { 
+                name: "Jason Prance", title: "Chief Strategy & Innovation Officer",
+                children: [
+                    { name: "Sean MacPhedran", title: "Sr.Lead, Business Innovation & AI" },
+                    { name: "Owen Melhuish", title: "Lead, Business Innovation & AI" },
+                    { name: "Jeremy Agers", title: "Head of Content & Creative Strategy" },
+                    { name: "Anna Clauson", title: "Manager, Creator & Influencer Strategy" },
+                    { name: "Suzy An", title: "Lead, Creative & Design Architect" },
+                    { name: "Schuyler Vanderveen", title: "Lead, Creative & Experience Architect" }
                 ]
             },
-            {
-                name: "STUDIO P (CREATIVE)",
+            { 
+                name: "Kirsten Moore", title: "Managing Director, Client Partnerships NA",
                 children: [
-                    { 
-                        name: "Visual Identity", 
-                        children: [
-                            { name: "Rubber Hose Specialist" }, 
-                            { name: "Ignorant Flash Artist" },
-                            { name: "F1 Livery Designer" }
-                        ] 
-                    },
-                    { name: "Production", children: [{ name: "Video Production" }, { name: "Photography" }, { name: "AI Asset Gen" }] }
+                    { name: "Tommy Champagne", title: "Managing Director, Client Partnerships U.S." },
+                    { name: "Mark Christie", title: "Sr.Lead, Client Partnerships" },
+                    { name: "Janet Kirkman", title: "Sr.Lead, Client Partnerships" }
                 ]
             },
-            {
-                name: "OPERATIONS & GROWTH",
+            { 
+                name: "Darren Hardeman", title: "Managing Director, Media CA",
                 children: [
-                    { name: "Account Management", children: [{ name: "Client Success" }, { name: "Project Lead" }] },
-                    { name: "Talent & Staffing", children: [{ name: "Booking Agents" }, { name: "Field Managers" }] }
+                    { name: "Matt Edgar", title: "Sr.Lead Media Decisioning" },
+                    { name: "Jonathan Lim", title: "Manager, Media Decisioning" },
+                    { name: "Estheymi Gonzales", title: "Specialist, Media Orchestration" },
+                    { name: "Abhinandan Dixit", title: "Manager, Media Decisioning" },
+                    { name: "Keshav Krishan", title: "Sr. Specialist, Media Orchestration" },
+                    { name: "Davensh Malviya", title: "Sr. Specialist, Media Orchestration" },
+                    { name: "Ayaz Khan", title: "Data Analyst" }
+                ]
+            },
+            { 
+                name: "Andres Torrente", title: "Managing Director, Media U.S.",
+                children: [
+                    { name: "Andrew Freischlag", title: "Sr.Lead, Media Decisioning" },
+                    { name: "Jessica Teylan", title: "Lead, Media Decisioning" },
+                    { name: "Julianna Sarkissian", title: "Manager, Media Decisioning" },
+                    { name: "Nahla Elshatanofy", title: "Manager, Media Decisioning" },
+                    { name: "Sam Shah", title: "Data Analyst" }
                 ]
             }
         ]
     };
 
-    let width = window.innerWidth;
-    let height = window.innerHeight;
+    const zoom = d3.zoom().scaleExtent([0.1, 3]).on("zoom", (e) => container.attr("transform", e.transform));
+    const svg = d3.select("body").append("svg").attr("width", width).attr("height", height).call(zoom).append("g");
+    const container = svg;
+    const linkGroup = svg.append("g");
+    const nodeGroup = svg.append("g");
 
-    const svg = d3.select("#canvas").append("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .call(d3.zoom().scaleExtent([0.3, 3]).on("zoom", (e) => g.attr("transform", e.transform)));
+    const simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id(d => d.id).distance(120))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collision", d3.forceCollide().radius(110))
+        .alphaDecay(0.1);
 
-    const g = svg.append("g");
+    let nodes = [];
+    let links = [];
+    let isAllExpanded = false;
 
-    const tree = d3.tree().nodeSize([60, 280]);
-    let root = d3.hierarchy(data);
+    const rootHierarchy = d3.hierarchy(fullData);
+    rootHierarchy.descendants().forEach((d, i) => {
+        d.id = i;
+        d._children = d.children;
+        d.children = null;
+        let ancestor = d;
+        while (ancestor.depth > 1) ancestor = ancestor.parent;
+        const theme = verticalThemes[ancestor.data.name] || verticalThemes["PUSH"];
+        d.color = theme.color;
+        d.dept = theme.dept;
+        d.targetAngle = theme.angle;
+    });
 
-    root.x0 = 0;
-    root.y0 = 0;
+    nodes = [rootHierarchy];
+    rootHierarchy.x = width / 2; rootHierarchy.y = height / 2;
 
-    // Start with main categories expanded, but sub-categories collapsed
-    root.children.forEach(collapse);
+    update();
 
-    update(root);
+    function update() {
+        const link = linkGroup.selectAll(".link").data(links, d => d.target.id);
+        link.exit().remove();
+        const mergedLinks = link.enter().append("line").attr("class", "link").merge(link);
 
-    // Zoom to fit initial view
-    const initialTransform = d3.zoomIdentity.translate(width / 5, height / 2).scale(0.8);
-    svg.call(d3.zoom().transform, initialTransform);
+        const node = nodeGroup.selectAll(".node").data(nodes, d => d.id);
+        node.exit().remove();
+        const nodeEnter = node.enter().append("g").attr("class", "node")
+            .on("click", (e, d) => { if (!e.defaultPrevented) toggleNode(d); })
+            .call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended));
 
-    function collapse(d) {
+        const rectWidth = 195; const rectHeight = 75;
+        nodeEnter.append("rect").attr("class", "node-rect").attr("width", rectWidth).attr("height", rectHeight)
+            .attr("x", -rectWidth / 2).attr("y", -rectHeight / 2).style("fill", d => d.color);
+
+        nodeEnter.append("text").attr("class", "node-dept").attr("x", -rectWidth / 2 + 15).attr("y", -14).text(d => d.dept);
+        nodeEnter.append("text").attr("class", "node-name").attr("x", -rectWidth / 2 + 15).attr("y", 4).text(d => d.data.name);
+        nodeEnter.append("text").attr("class", "node-title").attr("x", -rectWidth / 2 + 15).attr("y", 18).text(d => d.data.title.substring(0,30));
+
+        const plus = nodeEnter.append("g").attr("class", "plus-icon");
+        plus.append("circle").attr("class", "plus-bg").attr("r", 10).attr("cx", rectWidth / 2 - 20).attr("cy", rectHeight / 2 - 20);
+        plus.append("text").attr("class", "plus-text").attr("x", rectWidth / 2 - 20).attr("y", rectHeight / 2 - 16).text("+");
+
+        const mergedNodes = nodeEnter.merge(node);
+        mergedNodes.select(".plus-icon").style("display", d => (d._children) ? "block" : "none");
+
+        simulation.nodes(nodes);
+        simulation.force("link").links(links);
+        simulation.alpha(0.3).restart();
+
+        simulation.on("tick", () => {
+            mergedLinks.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+            mergedNodes.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+    }
+
+    function toggleNode(d) {
         if (d.children) {
-            d._children = d.children;
-            d._children.forEach(collapse);
-            d.children = null;
+            const walk = (n) => { if (n.children) { n.children.forEach(c => { nodes = nodes.filter(x => x.id !== c.id); links = links.filter(l => l.target.id !== c.id); walk(c); }); } };
+            walk(d); d._children = d.children; d.children = null;
+        } else if (d._children) {
+            d.children = d._children; d._children = null;
+            d.children.forEach(c => { c.x = d.x; c.y = d.y; nodes.push(c); links.push({source: d, target: c}); });
+        }
+        update();
+    }
+
+    document.getElementById('toggle-all').addEventListener('click', () => {
+        if (!isAllExpanded) {
+            const expandAll = (n) => { if (n._children) toggleNode(n); if (n.children) n.children.forEach(expandAll); };
+            expandAll(rootHierarchy);
+            document.getElementById('toggle-all').innerText = "Collapse All";
+            isAllExpanded = true;
+            setTimeout(() => fitToScreen(), 800);
+        } else {
+            const walk = (n) => { if (n.children) { n.children.forEach(walk); toggleNode(n); } };
+            walk(rootHierarchy);
+            document.getElementById('toggle-all').innerText = "Expand All";
+            isAllExpanded = false;
+        }
+    });
+
+    document.getElementById('organize-btn').addEventListener('click', () => {
+        nodes.forEach(d => {
+            if (d.depth > 0) {
+                const angle = (d.targetAngle * Math.PI) / 180;
+                const distance = 250 + (d.depth * 100);
+                d.x = width / 2 + Math.cos(angle) * distance;
+                d.y = height / 2 + Math.sin(angle) * distance;
+            }
+        });
+        simulation.alpha(0.5).restart();
+        setTimeout(() => fitToScreen(), 500);
+    });
+
+    function fitToScreen() {
+        const bounds = container.node().getBBox();
+        const midX = bounds.x + bounds.width / 2;
+        const midY = bounds.y + bounds.height / 2;
+        const scale = 0.8 / Math.max(bounds.width / width, bounds.height / height);
+        d3.select("svg").transition().duration(1200).call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2).scale(scale).translate(-midX, -midY));
+    }
+
+    function performSearch() {
+        const errorMsg = document.getElementById('search-error');
+        errorMsg.style.opacity = "0"; // Reset error
+        
+        const term = document.getElementById('search-input').value.toLowerCase().trim();
+        if (!term) return;
+        
+        const target = rootHierarchy.descendants().find(d => d.data.name.toLowerCase().includes(term));
+        
+        // Find if target is already in the 'nodes' array (active)
+        const activeTarget = nodes.find(n => n.id === (target ? target.id : -1));
+
+        if (target && activeTarget) {
+            setTimeout(() => {
+                const t = d3.zoomIdentity.translate(width/2, height/2).scale(1.2).translate(-activeTarget.x, -activeTarget.y);
+                d3.select("svg").transition().duration(1000).call(zoom.transform, t);
+            }, 100);
+        } else {
+            // Show error if person doesn't exist OR hasn't been expanded yet
+            errorMsg.style.opacity = "1";
+            setTimeout(() => { errorMsg.style.opacity = "0"; }, 4000);
         }
     }
 
-    function update(source) {
-        const nodes = tree(root).descendants();
-        const links = tree(root).links();
+    document.getElementById('search-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
+    document.getElementById('search-button').addEventListener('click', performSearch);
+    function dragstarted(event, d) { if (!event.active) simulation.alphaTarget(0.1).restart(); d.fx = d.x; d.fy = d.y; }
+    function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+    function dragended(event, d) { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
 
-        nodes.forEach(d => d.y = d.depth * 280);
-
-        const node = g.selectAll('g.node')
-            .data(nodes, d => d.id || (d.id = Math.random()));
-
-        const nodeEnter = node.enter().append('g')
-            .attr('class', 'node')
-            .attr('transform', d => `translate(${source.y0},${source.x0})`)
-            .on('click', (event, d) => {
-                if (d.children) {
-                    d._children = d.children;
-                    d.children = null;
-                } else {
-                    d.children = d._children;
-                    d._children = null;
-                }
-                update(d);
-            });
-
-        nodeEnter.append('circle').attr('r', 1e-6);
-
-        nodeEnter.append('text')
-            .attr("dy", ".35em")
-            .attr("x", d => d.children || d._children ? -18 : 18)
-            .attr("text-anchor", d => d.children || d._children ? "end" : "start")
-            .text(d => d.data.name)
-            .style("fill-opacity", 1e-6);
-
-        const nodeUpdate = nodeEnter.merge(node);
-
-        nodeUpdate.transition().duration(600)
-            .attr("transform", d => `translate(${d.y},${d.x})`);
-
-        nodeUpdate.select('circle')
-            .attr('r', 7)
-            .attr('class', d => d._children ? "node--collapsed" : "")
-            .style("fill", d => d._children ? "var(--primary)" : "#fff");
-
-        nodeUpdate.select('text')
-            .style("fill-opacity", 1);
-
-        const nodeExit = node.exit().transition().duration(600)
-            .attr("transform", d => `translate(${source.y},${source.x})`)
-            .remove();
-
-        const link = g.selectAll('path.link')
-            .data(links, d => d.target.id);
-
-        const linkEnter = link.enter().insert('path', "g")
-            .attr("class", "link")
-            .attr('d', d => {
-                const o = {x: source.x0, y: source.y0};
-                return diagonal(o, o);
-            });
-
-        linkEnter.merge(link).transition().duration(600)
-            .attr('d', d => diagonal(d.source, d.target));
-
-        link.exit().transition().duration(600)
-            .attr('d', d => {
-                const o = {x: source.y, y: source.x};
-                return diagonal(o, o);
-            }).remove();
-
-        nodes.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
-    }
-
-    function diagonal(s, t) {
-        return `M ${s.y} ${s.x} C ${(s.y + t.y) / 2} ${s.x}, ${(s.y + t.y) / 2} ${t.x}, ${t.y} ${t.x}`;
-    }
-
-    window.addEventListener('resize', () => {
-        svg.attr("width", window.innerWidth).attr("height", window.innerHeight);
-    });
 </script>
 </body>
 </html>
