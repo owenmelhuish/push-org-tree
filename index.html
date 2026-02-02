@@ -22,35 +22,44 @@
         p { margin: 8px 0 0; font-size: 11px; font-weight: 600; color: #777; text-transform: uppercase; letter-spacing: 2px; }
 
         #top-controls { position: absolute; top: 40px; right: 40px; z-index: 20; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
-        #search-container { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; gap: 10px; align-items: center; }
         
-        /* Error Message Styling */
+        #search-container { 
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); 
+            z-index: 20; display: flex; flex-direction: column; gap: 8px;
+            align-items: center; width: auto; 
+        }
+        
+        #dept-controls { 
+            display: flex; gap: 6px;
+            justify-content: center; white-space: nowrap;
+        }
+
         #search-error { color: var(--accent); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
         .search-row { display: flex; gap: 10px; align-items: center; }
 
         .glass-btn {
             background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50px;
-            padding: 12px 25px; color: white; font-size: 11px; font-weight: 600;
+            padding: 8px 16px;
+            color: white; font-size: 9px; font-weight: 600;
             text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
             transition: all 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            width: 140px; text-align: center;
+            text-align: center;
         }
         .glass-btn:hover { background: var(--accent); border-color: var(--accent); }
 
         #search-input {
             background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 50px;
-            padding: 12px 25px; width: 300px; color: white; font-size: 14px; outline: none;
+            padding: 10px 25px; width: 300px; color: white; font-size: 14px; outline: none;
             transition: all 0.3s ease;
         }
         #search-input:focus { width: 400px; border-color: var(--accent); }
 
-        .node-rect { stroke: rgba(255,255,255,0.1); stroke-width: 1px; rx: 12; ry: 12; cursor: grab; }
+        .node-rect { stroke: rgba(255,255,255,0.1); stroke-width: 1px; rx: 12; ry: 12; cursor: grab; transition: fill 0.3s ease; }
         .node-dept { font-size: 9px; font-weight: 800; fill: rgba(255,255,255,0.9); pointer-events: none; }
         .node-name { font-size: 11px; font-weight: 800; text-transform: uppercase; fill: #fff; pointer-events: none; }
         .node-title { font-size: 9px; font-weight: 400; fill: var(--text-dim); pointer-events: none; }
-        .plus-icon { pointer-events: none; }
         .plus-bg { fill: rgba(255,255,255,0.2); }
         .plus-text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; }
 
@@ -66,15 +75,16 @@
 </div>
 
 <div id="top-controls">
-    <button id="toggle-all" class="glass-btn">Expand All</button>
-    <button id="organize-btn" class="glass-btn">Organize</button>
+    <button id="toggle-all" class="glass-btn" style="width:140px; font-size:11px; padding: 12px 25px;">Expand All</button>
+    <button id="organize-btn" class="glass-btn" style="width:140px; font-size:11px; padding: 12px 25px;">Organize</button>
 </div>
 
 <div id="search-container">
+    <div id="dept-controls"></div>
     <div id="search-error">Please expand all before searching</div>
     <div class="search-row">
         <input type="text" id="search-input" placeholder="Search talent..." autocomplete="off">
-        <button id="search-button" class="glass-btn" style="width: auto;">Search</button>
+        <button id="search-button" class="glass-btn" style="width: auto; font-size: 12px; padding: 10px 20px;">Search</button>
     </div>
 </div>
 
@@ -83,10 +93,10 @@
 
     const verticalThemes = {
         "PUSH": { color: "#4a148c", dept: "HQ", angle: 0 },
+        "Chelsea Soochit": { color: "#4527a0", dept: "PEOPLE & CULTURE", angle: 135 },
         "Gino Cantalini": { color: "#d32f2f", dept: "BRAND", angle: 0 },
         "Julie Allen": { color: "#ef6c00", dept: "FINANCE", angle: 45 },
         "Braden Bailey": { color: "#00695c", dept: "OPERATIONS", angle: 90 },
-        "Chelsea Soochit": { color: "#4527a0", dept: "PEOPLE & CULTURE", angle: 135 },
         "Jason Prance": { color: "#283593", dept: "STRATEGY", angle: 180 },
         "Kirsten Moore": { color: "#c2185b", dept: "CLIENT SERVICES", angle: 225 },
         "Darren Hardeman": { color: "#1565c0", dept: "MEDIA CA", angle: 270 },
@@ -94,70 +104,97 @@
     };
 
     const fullData = {
-        name: "PUSH", title: "HQ",
+        name: "PUSH", 
+        isRoot: true,
         children: [
-            { name: "Julie Berger", title: "President, NA" },
-            { name: "Kyle Verge", title: "CEO" },
             { name: "Gino Cantalini", title: "Chief Brand Officer" },
+            { name: "Chelsea Soochit", title: "People & Culture" },
             { 
                 name: "Julie Allen", title: "Chief Financial Officer, NA", 
                 children: [
-                    { name: "Jack Vukanovich", title: "Controller" },
-                    { name: "Mabel Thompson", title: "Accounting Manager" },
-                    { name: "Serena Martini", title: "Staff Accountant" }
+                    { 
+                        name: "Jack Vukanovich", title: "Controller",
+                        children: [
+                            { name: "Serena Martini", title: "Staff Accountant" },
+                            { name: "Mabel Thompson", title: "Accounting Manager" }
+                        ]
+                    }
                 ] 
             },
             { 
                 name: "Braden Bailey", title: "Chief Operating Officer", 
                 children: [
-                    { name: "Lauren Harvey", title: "Head of Operations & Resourcing" },
-                    { name: "Stephan Guenette", title: "Lead, Creative Production & Resourcing" },
-                    { name: "Emma Bakos", title: "Sr. Specalist, Project Operations" },
-                    { name: "Ashley Walton", title: "Lead, Creative Technologist" },
                     { name: "Nataliya Polyakova", title: "Creative Technologist" },
-                    { name: "Evgeniy Polyakova", title: "Creative Technologist" }
+                    { name: "Ashley Walton", title: "Lead, Creative Technologist" },
+                    { name: "Evgeniy Polyakova", title: "Creative Technologist" },
+                    { 
+                        name: "Lauren Harvey", title: "Head of Operations & Resourcing",
+                        children: [
+                            { name: "Stephan Guenette", title: "Lead, Creative Production & Resourcing" },
+                            { name: "Emma Bakos", title: "Sr. Specialist, Project Operations" }
+                        ]
+                    }
                 ] 
             },
-            { name: "Chelsea Soochit", title: "People & Culture" },
             { 
                 name: "Jason Prance", title: "Chief Strategy & Innovation Officer",
                 children: [
-                    { name: "Sean MacPhedran", title: "Sr.Lead, Business Innovation & AI" },
+                    { name: "Sean Macphedran", title: "Sr. Lead, Business Innovation & AI" },
                     { name: "Owen Melhuish", title: "Lead, Business Innovation & AI" },
-                    { name: "Jeremy Agers", title: "Head of Content & Creative Strategy" },
-                    { name: "Anna Clauson", title: "Manager, Creator & Influencer Strategy" },
                     { name: "Suzy An", title: "Lead, Creative & Design Architect" },
-                    { name: "Schuyler Vanderveen", title: "Lead, Creative & Experience Architect" }
+                    { name: "Schuyler Vanderveen", title: "Lead, Creative & Experience Architect" },
+                    { 
+                        name: "Jeremy Agers", title: "Head of Content & Creative Strategy",
+                        children: [
+                            { name: "Anna Clauson", title: "Manager, Creator & Influencer Strategy" }
+                        ]
+                    }
                 ]
             },
             { 
                 name: "Kirsten Moore", title: "Managing Director, Client Partnerships NA",
                 children: [
-                    { name: "Tommy Champagne", title: "Managing Director, Client Partnerships U.S." },
-                    { name: "Mark Christie", title: "Sr.Lead, Client Partnerships" },
-                    { name: "Janet Kirkman", title: "Sr.Lead, Client Partnerships" }
-                ]
-            },
-            { 
-                name: "Darren Hardeman", title: "Managing Director, Media CA",
-                children: [
-                    { name: "Matt Edgar", title: "Sr.Lead Media Decisioning" },
-                    { name: "Jonathan Lim", title: "Manager, Media Decisioning" },
-                    { name: "Estheymi Gonzales", title: "Specialist, Media Orchestration" },
-                    { name: "Abhinandan Dixit", title: "Manager, Media Decisioning" },
-                    { name: "Keshav Krishan", title: "Sr. Specialist, Media Orchestration" },
-                    { name: "Davensh Malviya", title: "Sr. Specialist, Media Orchestration" },
-                    { name: "Ayaz Khan", title: "Data Analyst" }
+                    { name: "Mark Christie", title: "Sr. Lead, Client Partnerships" },
+                    { 
+                        name: "Tommy Campagne", title: "Managing Director, Client Partnerships U.S.",
+                        children: [
+                            { name: "Janet Kirkman", title: "Sr. Lead, Client Partnerships" }
+                        ]
+                    }
                 ]
             },
             { 
                 name: "Andres Torrente", title: "Managing Director, Media U.S.",
                 children: [
-                    { name: "Andrew Freischlag", title: "Sr.Lead, Media Decisioning" },
-                    { name: "Jessica Teylan", title: "Lead, Media Decisioning" },
-                    { name: "Julianna Sarkissian", title: "Manager, Media Decisioning" },
-                    { name: "Nahla Elshatanofy", title: "Manager, Media Decisioning" },
-                    { name: "Sam Shah", title: "Data Analyst" }
+                    { name: "Sam Shah", title: "Data Specialist" },
+                    { 
+                        name: "Andrew Freichlag", title: "Sr. Lead, Media Decisioning",
+                        children: [
+                            { name: "Nahla Elshatanofy", title: "Manager, Media Decisioning" }
+                        ]
+                    },
+                    { 
+                        name: "Jessica Teylan", title: "Lead, Media Decisioning",
+                        children: [
+                            { name: "Julianna Sarkissian", title: "Manager, Media Decisioning" }
+                        ]
+                    }
+                ]
+            },
+            { 
+                name: "Darren Hardeman", title: "Managing Director, Media CA",
+                children: [
+                    { 
+                        name: "Matt Edgar", title: "Sr. Lead Media Decisioning",
+                        children: [
+                            { name: "Jonathan Lim", title: "Manager, Media Decisioning" },
+                            { name: "Estheymi Gonzales", title: "Specialist, Media Orchestration" },
+                            { name: "Abhinandan Dixit", title: "Sr.Specialist, Media Orchestration" },
+                            { name: "Keshav Krishan", title: "Manager, Media Decisioning" },
+                            { name: "Davensh Malviya", title: "Sr. Specialist, Media Orchestration" },
+                            { name: "Ayaz Khan", title: "Data Analyst" }
+                        ]
+                    }
                 ]
             }
         ]
@@ -165,38 +202,54 @@
 
     const zoom = d3.zoom().scaleExtent([0.1, 3]).on("zoom", (e) => container.attr("transform", e.transform));
     const svg = d3.select("body").append("svg").attr("width", width).attr("height", height).call(zoom).append("g");
-    const container = svg;
-    const linkGroup = svg.append("g");
-    const nodeGroup = svg.append("g");
+    const container = svg, linkGroup = svg.append("g"), nodeGroup = svg.append("g");
 
     const simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(d => d.id).distance(120))
-        .force("charge", d3.forceManyBody().strength(-300))
+        .force("link", d3.forceLink().id(d => d.id).distance(130))
+        .force("charge", d3.forceManyBody().strength(-250))
         .force("center", d3.forceCenter(width / 2, height / 2))
-        .force("collision", d3.forceCollide().radius(110))
-        .alphaDecay(0.1);
+        .force("collision", d3.forceCollide().radius(120))
+        .alphaDecay(0.12);
 
-    let nodes = [];
-    let links = [];
-    let isAllExpanded = false;
-
+    let nodes = [], links = [], isAllExpanded = false;
     const rootHierarchy = d3.hierarchy(fullData);
+    
     rootHierarchy.descendants().forEach((d, i) => {
-        d.id = i;
-        d._children = d.children;
-        d.children = null;
+        d.id = i; d._children = d.children; d.children = null;
         let ancestor = d;
         while (ancestor.depth > 1) ancestor = ancestor.parent;
         const theme = verticalThemes[ancestor.data.name] || verticalThemes["PUSH"];
-        d.color = theme.color;
-        d.dept = theme.dept;
-        d.targetAngle = theme.angle;
+        d.color = theme.color; d.dept = theme.dept; d.targetAngle = theme.angle;
     });
 
     nodes = [rootHierarchy];
     rootHierarchy.x = width / 2; rootHierarchy.y = height / 2;
-
     update();
+
+    function wrap(text, width) {
+        text.each(function() {
+            var text = d3.select(this),
+                words = text.text().split(/\s+/).reverse(),
+                word,
+                line = [],
+                lineNumber = 0,
+                lineHeight = 1.1,
+                y = text.attr("y"),
+                dy = parseFloat(text.attr("dy") || 0),
+                tspan = text.text(null).append("tspan").attr("x", text.attr("x")).attr("y", y).attr("dy", dy + "em");
+            while (word = words.pop()) {
+                line.push(word);
+                tspan.text(line.join(" "));
+                if (tspan.node().getComputedTextLength() > width) {
+                    line.pop();
+                    tspan.text(line.join(" "));
+                    line = [word];
+                    tspan = text.append("tspan").attr("x", text.attr("x")).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                }
+            }
+            this.lineCount = lineNumber + 1;
+        });
+    }
 
     function update() {
         const link = linkGroup.selectAll(".link").data(links, d => d.target.id);
@@ -209,17 +262,44 @@
             .on("click", (e, d) => { if (!e.defaultPrevented) toggleNode(d); })
             .call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended));
 
-        const rectWidth = 195; const rectHeight = 75;
-        nodeEnter.append("rect").attr("class", "node-rect").attr("width", rectWidth).attr("height", rectHeight)
-            .attr("x", -rectWidth / 2).attr("y", -rectHeight / 2).style("fill", d => d.color);
+        const rw = 220; 
+        nodeEnter.append("rect").attr("class", "node-rect").attr("width", rw).attr("x", -rw/2).style("fill", d => d.color);
 
-        nodeEnter.append("text").attr("class", "node-dept").attr("x", -rectWidth / 2 + 15).attr("y", -14).text(d => d.dept);
-        nodeEnter.append("text").attr("class", "node-name").attr("x", -rectWidth / 2 + 15).attr("y", 4).text(d => d.data.name);
-        nodeEnter.append("text").attr("class", "node-title").attr("x", -rectWidth / 2 + 15).attr("y", 18).text(d => d.data.title.substring(0,30));
+        // Core / Hub Logic
+        if (rootHierarchy === nodes[0]) {
+           const rootG = nodeEnter.filter(d => d.data.isRoot);
+           
+           // PUSH Title
+           rootG.append("text").attr("class", "node-dept").attr("x", -rw/2 + 15).attr("y", -30).text("PUSH");
+           
+           // Kyle
+           rootG.append("text").attr("class", "node-name").attr("x", -rw/2 + 15).attr("y", -5).text("KYLE VERGE");
+           rootG.append("text").attr("class", "node-title").attr("x", -rw/2 + 15).attr("y", 7).text("CEO");
+           
+           // Julie
+           rootG.append("text").attr("class", "node-name").attr("x", -rw/2 + 15).attr("y", 27).text("JULIE BERGER");
+           rootG.append("text").attr("class", "node-title").attr("x", -rw/2 + 15).attr("y", 39).text("President, NA");
+           
+           rootG.select(".node-rect").attr("height", 100).attr("y", -50);
+        }
 
-        const plus = nodeEnter.append("g").attr("class", "plus-icon");
-        plus.append("circle").attr("class", "plus-bg").attr("r", 10).attr("cx", rectWidth / 2 - 20).attr("cy", rectHeight / 2 - 20);
-        plus.append("text").attr("class", "plus-text").attr("x", rectWidth / 2 - 20).attr("y", rectHeight / 2 - 16).text("+");
+        // Standard Node Logic
+        const standardNodes = nodeEnter.filter(d => !d.data.isRoot);
+        standardNodes.append("text").attr("class", "node-dept").attr("x", -rw/2 + 15).attr("y", -14).text(d => d.dept);
+        standardNodes.append("text").attr("class", "node-name").attr("x", -rw/2 + 15).attr("y", 4).text(d => d.data.name);
+        const titleText = standardNodes.append("text").attr("class", "node-title").attr("x", -rw/2 + 15).attr("y", 18).text(d => d.data.title);
+        titleText.call(wrap, rw - 30);
+
+        standardNodes.each(function(d) {
+            const t = d3.select(this).select(".node-title").node();
+            const lines = t.lineCount || 1;
+            const rh = 70 + (lines * 8);
+            d3.select(this).select(".node-rect").attr("height", rh).attr("y", -rh/2);
+            
+            const plus = d3.select(this).append("g").attr("class", "plus-icon");
+            plus.append("circle").attr("class", "plus-bg").attr("r", 10).attr("cx", rw/2 - 20).attr("cy", rh/2 - 20);
+            plus.append("text").attr("class", "plus-text").attr("x", rw/2 - 20).attr("y", rh/2 - 16).text("+");
+        });
 
         const mergedNodes = nodeEnter.merge(node);
         mergedNodes.select(".plus-icon").style("display", d => (d._children) ? "block" : "none");
@@ -240,23 +320,52 @@
             walk(d); d._children = d.children; d.children = null;
         } else if (d._children) {
             d.children = d._children; d._children = null;
-            d.children.forEach(c => { c.x = d.x; c.y = d.y; nodes.push(c); links.push({source: d, target: c}); });
+            d.children.forEach(c => { if (!nodes.find(n => n.id === c.id)) { c.x = d.x; c.y = d.y; nodes.push(c); links.push({source: d, target: c}); } });
         }
         update();
+    }
+
+    const uniqueDepts = [...new Set(Object.values(verticalThemes).map(t => t.dept))].filter(d => d !== "HQ");
+    const deptBox = document.getElementById('dept-controls');
+    uniqueDepts.forEach(dept => {
+        const btn = document.createElement('button');
+        btn.className = 'glass-btn';
+        btn.innerText = dept;
+        btn.onclick = () => expandDept(dept);
+        deptBox.appendChild(btn);
+    });
+
+    function expandDept(deptName) {
+        if (rootHierarchy._children) toggleNode(rootHierarchy);
+        const bloom = (n) => {
+            if (n._children) toggleNode(n);
+            if (n.children) n.children.forEach(bloom);
+        };
+        const lead = rootHierarchy.children.find(c => {
+            const theme = verticalThemes[c.data.name];
+            return theme && theme.dept === deptName;
+        });
+        if (lead) {
+            const activeLead = nodes.find(n => n.id === lead.id);
+            bloom(activeLead || lead);
+            setTimeout(() => {
+                const target = nodes.find(n => n.id === lead.id);
+                const t = d3.zoomIdentity.translate(width/2, height/2).scale(1).translate(-target.x, -target.y);
+                d3.select("svg").transition().duration(1000).call(zoom.transform, t);
+            }, 500);
+        }
     }
 
     document.getElementById('toggle-all').addEventListener('click', () => {
         if (!isAllExpanded) {
             const expandAll = (n) => { if (n._children) toggleNode(n); if (n.children) n.children.forEach(expandAll); };
             expandAll(rootHierarchy);
-            document.getElementById('toggle-all').innerText = "Collapse All";
-            isAllExpanded = true;
+            document.getElementById('toggle-all').innerText = "Collapse All"; isAllExpanded = true;
             setTimeout(() => fitToScreen(), 800);
         } else {
             const walk = (n) => { if (n.children) { n.children.forEach(walk); toggleNode(n); } };
             walk(rootHierarchy);
-            document.getElementById('toggle-all').innerText = "Expand All";
-            isAllExpanded = false;
+            document.getElementById('toggle-all').innerText = "Expand All"; isAllExpanded = false;
         }
     });
 
@@ -275,31 +384,24 @@
 
     function fitToScreen() {
         const bounds = container.node().getBBox();
-        const midX = bounds.x + bounds.width / 2;
-        const midY = bounds.y + bounds.height / 2;
+        const midX = bounds.x + bounds.width / 2, midY = bounds.y + bounds.height / 2;
         const scale = 0.8 / Math.max(bounds.width / width, bounds.height / height);
-        d3.select("svg").transition().duration(1200).call(zoom.transform, d3.zoomIdentity.translate(width / 2, height / 2).scale(scale).translate(-midX, -midY));
+        d3.select("svg").transition().duration(1200).call(zoom.transform, d3.zoomIdentity.translate(width/2, height/2).scale(scale).translate(-midX, -midY));
     }
 
     function performSearch() {
         const errorMsg = document.getElementById('search-error');
-        errorMsg.style.opacity = "0"; // Reset error
-        
+        errorMsg.style.opacity = "0";
         const term = document.getElementById('search-input').value.toLowerCase().trim();
         if (!term) return;
-        
         const target = rootHierarchy.descendants().find(d => d.data.name.toLowerCase().includes(term));
-        
-        // Find if target is already in the 'nodes' array (active)
         const activeTarget = nodes.find(n => n.id === (target ? target.id : -1));
-
         if (target && activeTarget) {
             setTimeout(() => {
                 const t = d3.zoomIdentity.translate(width/2, height/2).scale(1.2).translate(-activeTarget.x, -activeTarget.y);
                 d3.select("svg").transition().duration(1000).call(zoom.transform, t);
             }, 100);
         } else {
-            // Show error if person doesn't exist OR hasn't been expanded yet
             errorMsg.style.opacity = "1";
             setTimeout(() => { errorMsg.style.opacity = "0"; }, 4000);
         }
@@ -310,7 +412,6 @@
     function dragstarted(event, d) { if (!event.active) simulation.alphaTarget(0.1).restart(); d.fx = d.x; d.fy = d.y; }
     function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
     function dragended(event, d) { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
-
 </script>
 </body>
 </html>
