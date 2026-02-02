@@ -58,13 +58,13 @@
 
         .node-rect { stroke: rgba(255,255,255,0.1); stroke-width: 1px; rx: 12; ry: 12; cursor: pointer; transition: fill 0.3s ease; }
         
-        .node-dept, .node-name, .node-title, .plus-icon, .root-expand-text { pointer-events: none; }
+        .node-dept, .node-name, .node-title, .toggle-icon-group, .root-expand-text { pointer-events: none; }
 
         .node-dept { font-size: 9px; font-weight: 800; fill: rgba(255,255,255,0.9); }
         .node-name { font-size: 11px; font-weight: 800; text-transform: uppercase; fill: #fff; }
         .node-title { font-size: 9px; font-weight: 400; fill: var(--text-dim); }
-        .plus-bg { fill: rgba(255,255,255,0.2); }
-        .plus-text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; }
+        .toggle-bg { fill: rgba(255,255,255,0.2); }
+        .toggle-text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; }
         .root-expand-text { font-size: 8px; font-weight: 600; fill: var(--text-dim); text-anchor: middle; text-transform: uppercase; }
 
         .link { stroke: var(--line); stroke-width: 2px; fill: none; }
@@ -208,12 +208,10 @@
     const svg = d3.select("body").append("svg").attr("width", width).attr("height", height).call(zoom).append("g");
     const container = svg, linkGroup = svg.append("g"), nodeGroup = svg.append("g");
 
-    // Dynamic Link Distance Fix: Giving root node children more space
     const simulation = d3.forceSimulation()
         .force("link", d3.forceLink().id(d => d.id).distance(d => d.source.depth === 0 ? 250 : 150))
         .force("charge", d3.forceManyBody().strength(-350))
         .force("center", d3.forceCenter(width / 2, height / 2))
-        // Dynamic Collision Radius Fix: Root node gets a larger buffer zone
         .force("collision", d3.forceCollide().radius(d => d.data.isRoot ? 260 : 120))
         .alphaDecay(0.12);
 
@@ -273,19 +271,17 @@
 
         // 3-Column Root Hub
         const rootNodes = nodeEnter.filter(d => d.data.isRoot);
-        const rwRoot = 450;
-        const rhRoot = 100;
+        const rwRoot = 450, rhRoot = 100;
         
         rootNodes.append("rect").attr("class", "node-rect").attr("width", rwRoot).attr("height", rhRoot).attr("x", -rwRoot/2).attr("y", -rhRoot/2).style("fill", d => d.color);
         rootNodes.append("text").attr("class", "node-dept").attr("x", 0).attr("y", -30).attr("text-anchor", "middle").text("PUSH");
-        
         rootNodes.append("text").attr("class", "node-name").attr("x", -rwRoot/2 + 20).attr("y", 0).text("KYLE VERGE");
         rootNodes.append("text").attr("class", "node-title").attr("x", -rwRoot/2 + 20).attr("y", 12).text("CEO");
         
-        rootNodes.append("text").attr("class", "root-expand-text").attr("x", 0).attr("y", 25).text("Click to expand");
-        const plusRoot = rootNodes.append("g").attr("class", "plus-icon");
-        plusRoot.append("circle").attr("class", "plus-bg").attr("r", 12).attr("cx", 0).attr("cy", 0);
-        plusRoot.append("text").attr("class", "plus-text").attr("x", 0).attr("y", 5).text("+");
+        rootNodes.append("text").attr("class", "root-expand-text").attr("x", 0).attr("y", 25).text("Click to toggle");
+        const toggleGroupRoot = rootNodes.append("g").attr("class", "toggle-icon-group");
+        toggleGroupRoot.append("circle").attr("class", "toggle-bg").attr("r", 12).attr("cx", 0).attr("cy", 0);
+        toggleGroupRoot.append("text").attr("class", "toggle-text").attr("x", 0).attr("y", 5);
         
         rootNodes.append("text").attr("class", "node-name").attr("x", rwRoot/2 - 20).attr("y", 0).attr("text-anchor", "end").text("JULIE BERGER");
         rootNodes.append("text").attr("class", "node-title").attr("x", rwRoot/2 - 20).attr("y", 12).attr("text-anchor", "end").text("President, NA");
@@ -305,13 +301,16 @@
             const rh = 70 + (lines * 8);
             d3.select(this).select(".node-rect").attr("height", rh).attr("y", -rh/2);
             
-            const plus = d3.select(this).append("g").attr("class", "plus-icon");
-            plus.append("circle").attr("class", "plus-bg").attr("r", 10).attr("cx", rw/2 - 20).attr("cy", rh/2 - 20);
-            plus.append("text").attr("class", "plus-text").attr("x", rw/2 - 20).attr("y", rh/2 - 16).text("+");
+            const tg = d3.select(this).append("g").attr("class", "toggle-icon-group");
+            tg.append("circle").attr("class", "toggle-bg").attr("r", 10).attr("cx", rw/2 - 20).attr("cy", rh/2 - 20);
+            tg.append("text").attr("class", "toggle-text").attr("x", rw/2 - 20).attr("y", rh/2 - 16);
         });
 
         const mergedNodes = nodeEnter.merge(node);
-        mergedNodes.selectAll(".plus-icon").style("display", d => (d._children || d.children) ? "block" : "none");
+        
+        // Update Icons based on state
+        mergedNodes.selectAll(".toggle-icon-group").style("display", d => (d._children || d.children) ? "block" : "none");
+        mergedNodes.selectAll(".toggle-text").text(d => d.children ? "−" : "+");
 
         simulation.nodes(nodes);
         simulation.force("link").links(links);
