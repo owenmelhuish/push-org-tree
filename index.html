@@ -56,12 +56,16 @@
         }
         #search-input:focus { width: 400px; border-color: var(--accent); }
 
-        .node-rect { stroke: rgba(255,255,255,0.1); stroke-width: 1px; rx: 12; ry: 12; cursor: grab; transition: fill 0.3s ease; }
-        .node-dept { font-size: 9px; font-weight: 800; fill: rgba(255,255,255,0.9); pointer-events: none; }
-        .node-name { font-size: 11px; font-weight: 800; text-transform: uppercase; fill: #fff; pointer-events: none; }
-        .node-title { font-size: 9px; font-weight: 400; fill: var(--text-dim); pointer-events: none; }
+        .node-rect { stroke: rgba(255,255,255,0.1); stroke-width: 1px; rx: 12; ry: 12; cursor: pointer; transition: fill 0.3s ease; }
+        
+        .node-dept, .node-name, .node-title, .plus-icon, .root-expand-text { pointer-events: none; }
+
+        .node-dept { font-size: 9px; font-weight: 800; fill: rgba(255,255,255,0.9); }
+        .node-name { font-size: 11px; font-weight: 800; text-transform: uppercase; fill: #fff; }
+        .node-title { font-size: 9px; font-weight: 400; fill: var(--text-dim); }
         .plus-bg { fill: rgba(255,255,255,0.2); }
         .plus-text { fill: #fff; font-size: 14px; font-weight: 800; text-anchor: middle; }
+        .root-expand-text { font-size: 8px; font-weight: 600; fill: var(--text-dim); text-anchor: middle; text-transform: uppercase; }
 
         .link { stroke: var(--line); stroke-width: 2px; fill: none; }
         svg { cursor: move; }
@@ -204,11 +208,13 @@
     const svg = d3.select("body").append("svg").attr("width", width).attr("height", height).call(zoom).append("g");
     const container = svg, linkGroup = svg.append("g"), nodeGroup = svg.append("g");
 
+    // Dynamic Link Distance Fix: Giving root node children more space
     const simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(d => d.id).distance(130))
-        .force("charge", d3.forceManyBody().strength(-250))
+        .force("link", d3.forceLink().id(d => d.id).distance(d => d.source.depth === 0 ? 250 : 150))
+        .force("charge", d3.forceManyBody().strength(-350))
         .force("center", d3.forceCenter(width / 2, height / 2))
-        .force("collision", d3.forceCollide().radius(120))
+        // Dynamic Collision Radius Fix: Root node gets a larger buffer zone
+        .force("collision", d3.forceCollide().radius(d => d.data.isRoot ? 260 : 120))
         .alphaDecay(0.12);
 
     let nodes = [], links = [], isAllExpanded = false;
@@ -259,32 +265,35 @@
         const node = nodeGroup.selectAll(".node").data(nodes, d => d.id);
         node.exit().remove();
         const nodeEnter = node.enter().append("g").attr("class", "node")
-            .on("click", (e, d) => { if (!e.defaultPrevented) toggleNode(d); })
+            .on("click", (e, d) => { 
+                e.stopPropagation();
+                if (!e.defaultPrevented) toggleNode(d); 
+            })
             .call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended));
 
-        const rw = 220; 
-        nodeEnter.append("rect").attr("class", "node-rect").attr("width", rw).attr("x", -rw/2).style("fill", d => d.color);
+        // 3-Column Root Hub
+        const rootNodes = nodeEnter.filter(d => d.data.isRoot);
+        const rwRoot = 450;
+        const rhRoot = 100;
+        
+        rootNodes.append("rect").attr("class", "node-rect").attr("width", rwRoot).attr("height", rhRoot).attr("x", -rwRoot/2).attr("y", -rhRoot/2).style("fill", d => d.color);
+        rootNodes.append("text").attr("class", "node-dept").attr("x", 0).attr("y", -30).attr("text-anchor", "middle").text("PUSH");
+        
+        rootNodes.append("text").attr("class", "node-name").attr("x", -rwRoot/2 + 20).attr("y", 0).text("KYLE VERGE");
+        rootNodes.append("text").attr("class", "node-title").attr("x", -rwRoot/2 + 20).attr("y", 12).text("CEO");
+        
+        rootNodes.append("text").attr("class", "root-expand-text").attr("x", 0).attr("y", 25).text("Click to expand");
+        const plusRoot = rootNodes.append("g").attr("class", "plus-icon");
+        plusRoot.append("circle").attr("class", "plus-bg").attr("r", 12).attr("cx", 0).attr("cy", 0);
+        plusRoot.append("text").attr("class", "plus-text").attr("x", 0).attr("y", 5).text("+");
+        
+        rootNodes.append("text").attr("class", "node-name").attr("x", rwRoot/2 - 20).attr("y", 0).attr("text-anchor", "end").text("JULIE BERGER");
+        rootNodes.append("text").attr("class", "node-title").attr("x", rwRoot/2 - 20).attr("y", 12).attr("text-anchor", "end").text("President, NA");
 
-        // Core / Hub Logic
-        if (rootHierarchy === nodes[0]) {
-           const rootG = nodeEnter.filter(d => d.data.isRoot);
-           
-           // PUSH Title
-           rootG.append("text").attr("class", "node-dept").attr("x", -rw/2 + 15).attr("y", -30).text("PUSH");
-           
-           // Kyle
-           rootG.append("text").attr("class", "node-name").attr("x", -rw/2 + 15).attr("y", -5).text("KYLE VERGE");
-           rootG.append("text").attr("class", "node-title").attr("x", -rw/2 + 15).attr("y", 7).text("CEO");
-           
-           // Julie
-           rootG.append("text").attr("class", "node-name").attr("x", -rw/2 + 15).attr("y", 27).text("JULIE BERGER");
-           rootG.append("text").attr("class", "node-title").attr("x", -rw/2 + 15).attr("y", 39).text("President, NA");
-           
-           rootG.select(".node-rect").attr("height", 100).attr("y", -50);
-        }
-
-        // Standard Node Logic
+        // Talent Nodes
         const standardNodes = nodeEnter.filter(d => !d.data.isRoot);
+        const rw = 195;
+        standardNodes.append("rect").attr("class", "node-rect").attr("width", rw).attr("x", -rw/2).style("fill", d => d.color);
         standardNodes.append("text").attr("class", "node-dept").attr("x", -rw/2 + 15).attr("y", -14).text(d => d.dept);
         standardNodes.append("text").attr("class", "node-name").attr("x", -rw/2 + 15).attr("y", 4).text(d => d.data.name);
         const titleText = standardNodes.append("text").attr("class", "node-title").attr("x", -rw/2 + 15).attr("y", 18).text(d => d.data.title);
@@ -302,7 +311,7 @@
         });
 
         const mergedNodes = nodeEnter.merge(node);
-        mergedNodes.select(".plus-icon").style("display", d => (d._children) ? "block" : "none");
+        mergedNodes.selectAll(".plus-icon").style("display", d => (d._children || d.children) ? "block" : "none");
 
         simulation.nodes(nodes);
         simulation.force("link").links(links);
@@ -331,7 +340,7 @@
         const btn = document.createElement('button');
         btn.className = 'glass-btn';
         btn.innerText = dept;
-        btn.onclick = () => expandDept(dept);
+        btn.onclick = (e) => { e.stopPropagation(); expandDept(dept); };
         deptBox.appendChild(btn);
     });
 
@@ -373,7 +382,7 @@
         nodes.forEach(d => {
             if (d.depth > 0) {
                 const angle = (d.targetAngle * Math.PI) / 180;
-                const distance = 250 + (d.depth * 100);
+                const distance = 350 + (d.depth * 100);
                 d.x = width / 2 + Math.cos(angle) * distance;
                 d.y = height / 2 + Math.sin(angle) * distance;
             }
