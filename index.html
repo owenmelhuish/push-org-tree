@@ -128,9 +128,13 @@
             { 
                 name: "Braden Bailey", title: "Chief Operating Officer", 
                 children: [
-                    { name: "Nataliya Polyakova", title: "Creative Technologist" },
-                    { name: "Ashley Walton", title: "Lead, Creative Technologist" },
-                    { name: "Evgeniy Polyakova", title: "Creative Technologist" },
+                    { 
+                        name: "Ashley Walton", title: "Lead, Creative Technologist",
+                        children: [
+                            { name: "Nataliya Polyakova", title: "Creative Technologist" },
+                            { name: "Evgeniy Polyakov", title: "Creative Technologist" }
+                        ]
+                    },
                     { 
                         name: "Lauren Harvey", title: "Head of Operations & Resourcing",
                         children: [
@@ -158,7 +162,7 @@
             { 
                 name: "Kirsten Moore", title: "Managing Director, Client Partnerships NA",
                 children: [
-                    { name: "Mark Christie", title: "Sr. Lead, Client Partnerships" },
+                    { name: "Mark Christie", title: "Lead, Client Partnerships" },
                     { 
                         name: "Tommy Campagne", title: "Managing Director, Client Partnerships U.S.",
                         children: [
@@ -170,7 +174,7 @@
             { 
                 name: "Andres Torrente", title: "Managing Director, Media U.S.",
                 children: [
-                    { name: "Sam Shah", title: "Data Specialist" },
+                    { name: "Sam Shah", title: "Lead, Decision Intelligence" },
                     { 
                         name: "Andrew Freichlag", title: "Sr. Lead, Media Decisioning",
                         children: [
@@ -194,9 +198,9 @@
                             { name: "Jonathan Lim", title: "Manager, Media Decisioning" },
                             { name: "Estheymi Gonzales", title: "Specialist, Media Orchestration" },
                             { name: "Abhinandan Dixit", title: "Sr.Specialist, Media Orchestration" },
-                            { name: "Keshav Krishan", title: "Manager, Media Decisioning" },
-                            { name: "Davensh Malviya", title: "Sr. Specialist, Media Orchestration" },
-                            { name: "Ayaz Khan", title: "Data Analyst" }
+                            { name: "Keshav Krishnan", title: "Manager, Media Decisioning" },
+                            { name: "Devansh Malviya", title: "Sr. Specialist, Media Orchestration" },
+                            { name: "Ayaz Khan", title: "Specialist, Decision Intelligence" }
                         ]
                     }
                 ]
@@ -269,7 +273,6 @@
             })
             .call(d3.drag().on("start", dragstarted).on("drag", dragged).on("end", dragended));
 
-        // 3-Column Root Hub
         const rootNodes = nodeEnter.filter(d => d.data.isRoot);
         const rwRoot = 450, rhRoot = 100;
         
@@ -286,7 +289,6 @@
         rootNodes.append("text").attr("class", "node-name").attr("x", rwRoot/2 - 20).attr("y", 0).attr("text-anchor", "end").text("JULIE BERGER");
         rootNodes.append("text").attr("class", "node-title").attr("x", rwRoot/2 - 20).attr("y", 12).attr("text-anchor", "end").text("President, NA");
 
-        // Talent Nodes
         const standardNodes = nodeEnter.filter(d => !d.data.isRoot);
         const rw = 195;
         standardNodes.append("rect").attr("class", "node-rect").attr("width", rw).attr("x", -rw/2).style("fill", d => d.color);
@@ -307,8 +309,6 @@
         });
 
         const mergedNodes = nodeEnter.merge(node);
-        
-        // Update Icons based on state
         mergedNodes.selectAll(".toggle-icon-group").style("display", d => (d._children || d.children) ? "block" : "none");
         mergedNodes.selectAll(".toggle-text").text(d => d.children ? "−" : "+");
 
